@@ -19,6 +19,27 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   String _currency = 'INR (₹)';
   bool _notificationsEnabled = true;
+  String _profileName = '';
+  String _profileEmail = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final profile = await DatabaseHelper.instance.getProfile();
+      if (!mounted) return;
+      setState(() {
+        _profileName = profile['name'] ?? '';
+        _profileEmail = profile['email'] ?? '';
+      });
+    } on Object {
+      // Profile loading is best effort; the editor reports actionable errors.
+    }
+  }
 
   void _showUnavailable(String feature) {
     ScaffoldMessenger.of(
@@ -27,13 +48,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _editProfile() async {
-    final profile = await DatabaseHelper.instance.getProfile();
+    Map<String, String> profile;
+    try {
+      profile = await DatabaseHelper.instance.getProfile();
+    } on Object {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open profile information.')),
+      );
+      return;
+    }
     if (!mounted) return;
-    final nameController = TextEditingController(text: profile['name']);
-    final emailController = TextEditingController(text: profile['email']);
+    final nameController = TextEditingController(text: profile['name'] ?? '');
+    final emailController = TextEditingController(text: profile['email'] ?? '');
     final saved = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Profile'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -51,25 +81,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () async {
-              await DatabaseHelper.instance.saveProfile(
-                name: nameController.text.trim(),
-                email: emailController.text.trim(),
-              );
-              if (context.mounted) Navigator.pop(context, true);
+              final name = nameController.text.trim();
+              final email = emailController.text.trim();
+              if (name.isEmpty) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('Please enter your name.')),
+                );
+                return;
+              }
+              try {
+                await DatabaseHelper.instance.saveProfile(
+                  name: name,
+                  email: email,
+                );
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext, true);
+                }
+              } on Object {
+                if (dialogContext.mounted) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(
+                      content: Text('Profile could not be saved. Try again.'),
+                    ),
+                  );
+                }
+              }
             },
             child: const Text('Save'),
           ),
         ],
       ),
     );
+    final savedName = nameController.text.trim();
+    final savedEmail = emailController.text.trim();
     nameController.dispose();
     emailController.dispose();
-    if (saved == true && mounted) setState(() {});
+    if (saved == true && mounted) {
+      setState(() {
+        _profileName = savedName;
+        _profileEmail = savedEmail;
+      });
+    }
   }
 
   Future<void> _backup() async {
@@ -168,7 +225,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: ListTile(
             leading: const Icon(Icons.person_outline),
             title: const Text('Profile'),
-            subtitle: const Text('View and manage user information'),
+            subtitle: Text(
+              _profileName.isEmpty
+                  ? 'View and manage user information'
+                  : '$_profileName${_profileEmail.isEmpty ? '' : ' • $_profileEmail'}',
+            ),
             onTap: _editProfile,
           ),
         ),
