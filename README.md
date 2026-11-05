@@ -16,7 +16,7 @@ Expense Tracker is a mobile app built with Flutter for people who want a simple 
 
 ## Screenshots
 Add at least three images from the phone in a `screenshots/` folder: list (`screenshots/list.png`), add form with an error (`screenshots/add_error.png`), summary (`screenshots/summary.png`).
-<img width="737" height="1600" alt="WhatsApp Image 2026-11-05 at 9 00 07 PM (1)" src="https://github.com/user-attachments/assets/7b49a17a-8ac1-4328-8c9a-894c9d848db3" /><img width="737" height="1600" alt="WhatsApp Image 2026-11-05 at 9 00 07 PM (1)" src="https://github.com/user-attachments/assets/19af16c6-65b3-4634-aa53-c8e465ec6f63" />
+<img width="737" height="1600" alt="WhatsApp Image 2026-11-05 at 9 00 07 PM (1)" src="https://github.com/user-attachments/assets/fe3e4642-79b3-486a-aff7-fef75eab4c45" /><img width="737" height="1600" alt="WhatsApp Image 2026-11-05 at 9 00 07 PM" src="https://github.com/user-attachments/assets/01ac68a9-cba5-4661-a56c-967a484e5c28" />
 
 
 ## Technology stack
