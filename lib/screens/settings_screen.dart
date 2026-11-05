@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../data/database_helper.dart';
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
     super.key,
@@ -19,8 +21,136 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
 
   void _showUnavailable(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature is not configured yet.')),
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$feature is not configured yet.')));
+  }
+
+  Future<void> _editProfile() async {
+    final profile = await DatabaseHelper.instance.getProfile();
+    if (!mounted) return;
+    final nameController = TextEditingController(text: profile['name']);
+    final emailController = TextEditingController(text: profile['email']);
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Profile'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Name'),
+            ),
+            TextField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(labelText: 'Email'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              await DatabaseHelper.instance.saveProfile(
+                name: nameController.text.trim(),
+                email: emailController.text.trim(),
+              );
+              if (context.mounted) Navigator.pop(context, true);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    nameController.dispose();
+    emailController.dispose();
+    if (saved == true && mounted) setState(() {});
+  }
+
+  Future<void> _backup() async {
+    try {
+      final file = await DatabaseHelper.instance.exportBackup();
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Backup saved to ${file.path}')));
+      }
+    } on Exception catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Backup failed: $error')));
+      }
+    }
+  }
+
+  Future<void> _restore() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Restore backup?'),
+        content: const Text(
+          'This replaces current expenses with the saved backup.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Restore'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await DatabaseHelper.instance.restoreBackup();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Backup restored. Refresh expenses to see changes.'),
+          ),
+        );
+      }
+    } on Exception catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Restore failed: $error')));
+      }
+    }
+  }
+
+  Future<void> _backupAndRestore() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.upload),
+              title: const Text('Back up now'),
+              onTap: () {
+                Navigator.pop(context);
+                _backup();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.download),
+              title: const Text('Restore backup'),
+              onTap: () {
+                Navigator.pop(context);
+                _restore();
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -39,7 +169,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             leading: const Icon(Icons.person_outline),
             title: const Text('Profile'),
             subtitle: const Text('View and manage user information'),
-            onTap: () => _showUnavailable('Profile management'),
+            onTap: _editProfile,
           ),
         ),
         Card(
@@ -84,9 +214,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: SwitchListTile(
             secondary: const Icon(Icons.notifications_outlined),
             title: const Text('Notifications'),
-            subtitle: Text(
-              _notificationsEnabled ? 'Enabled' : 'Disabled',
-            ),
+            subtitle: Text(_notificationsEnabled ? 'Enabled' : 'Disabled'),
             value: _notificationsEnabled,
             onChanged: (value) {
               setState(() => _notificationsEnabled = value);
@@ -98,7 +226,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             leading: const Icon(Icons.backup_outlined),
             title: const Text('Backup & Restore'),
             subtitle: const Text('Protect your expense data'),
-            onTap: () => _showUnavailable('Backup and restore'),
+            onTap: _backupAndRestore,
           ),
         ),
         Card(
