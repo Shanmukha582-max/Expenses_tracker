@@ -61,6 +61,17 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
     }
   }
 
+  Future<void> _editExpense(Expense existing) async {
+    final expense = await showModalBottomSheet<Expense>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _ExpenseForm(initialExpense: existing),
+    );
+    if (expense != null && mounted) {
+      await context.read<ExpenseProvider>().updateExpense(expense);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -125,7 +136,9 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
                   children: provider.totalsByCategory.entries
                       .map(
                         (entry) => Chip(
-                          label: Text('${entry.key}: ${_currency(entry.value)}'),
+                          label: Text(
+                            '${entry.key}: ${_currency(entry.value)}',
+                          ),
                         ),
                       )
                       .toList(),
@@ -139,7 +152,9 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
                 if (provider.isEmpty)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 32),
-                    child: Center(child: Text('No expenses yet. Add one to begin.')),
+                    child: Center(
+                      child: Text('No expenses yet. Add one to begin.'),
+                    ),
                   )
                 else
                   ...provider.expenses.map(
@@ -148,15 +163,30 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
                       background: Container(color: Colors.red),
                       onDismissed: (_) => provider.deleteExpense(expense.id!),
                       child: ListTile(
-                        leading: CircleAvatar(child: Icon(_iconFor(expense.category))),
+                        leading: CircleAvatar(
+                          child: Icon(_iconFor(expense.category)),
+                        ),
                         title: Text(expense.category),
                         subtitle: Text(
                           '${expense.note.isEmpty ? 'No note' : expense.note} • '
                           '${_date(expense.date)}',
                         ),
-                        trailing: Text(
-                          _currency(expense.amount),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        onTap: () => _editExpense(expense),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _currency(expense.amount),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: 'Edit expense',
+                              icon: const Icon(Icons.edit),
+                              onPressed: () => _editExpense(expense),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -171,7 +201,9 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
 }
 
 class _ExpenseForm extends StatefulWidget {
-  const _ExpenseForm();
+  const _ExpenseForm({this.initialExpense});
+
+  final Expense? initialExpense;
 
   @override
   State<_ExpenseForm> createState() => _ExpenseFormState();
@@ -182,6 +214,17 @@ class _ExpenseFormState extends State<_ExpenseForm> {
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
   String _category = Expense.categories.first;
+
+  @override
+  void initState() {
+    super.initState();
+    final expense = widget.initialExpense;
+    if (expense != null) {
+      _amountController.text = expense.amount.toString();
+      _noteController.text = expense.note;
+      _category = expense.category;
+    }
+  }
 
   @override
   void dispose() {
@@ -195,9 +238,10 @@ class _ExpenseFormState extends State<_ExpenseForm> {
     Navigator.pop(
       context,
       Expense(
+        id: widget.initialExpense?.id,
         amount: double.parse(_amountController.text.trim()),
         category: _category,
-        date: DateTime.now(),
+        date: widget.initialExpense?.date ?? DateTime.now(),
         note: _noteController.text.trim(),
       ),
     );
@@ -216,17 +260,26 @@ class _ExpenseFormState extends State<_ExpenseForm> {
             TextFormField(
               controller: _amountController,
               decoration: const InputDecoration(labelText: 'Amount'),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               validator: (value) {
                 final amount = double.tryParse(value?.trim() ?? '');
-                return amount == null || amount <= 0 ? 'Enter a positive amount' : null;
+                return amount == null || amount <= 0
+                    ? 'Enter a positive amount'
+                    : null;
               },
             ),
             DropdownButtonFormField<String>(
               initialValue: _category,
               decoration: const InputDecoration(labelText: 'Category'),
               items: Expense.categories
-                  .map((category) => DropdownMenuItem(value: category, child: Text(category)))
+                  .map(
+                    (category) => DropdownMenuItem(
+                      value: category,
+                      child: Text(category),
+                    ),
+                  )
                   .toList(),
               onChanged: (value) => setState(() => _category = value!),
             ),
