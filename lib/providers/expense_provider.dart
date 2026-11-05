@@ -1,69 +1,47 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
-import '../database/db_helper.dart';
+import '../data/database_helper.dart';
+import '../data/expense_repository.dart';
 import '../models/expense.dart';
 
 class ExpenseProvider extends ChangeNotifier {
-  ExpenseProvider({DbHelper? dbHelper})
-    : _dbHelper = dbHelper ?? DbHelper.instance;
+  ExpenseProvider({ExpenseRepository? repository})
+      : _repository = repository ?? DatabaseHelper.instance;
 
-  final DbHelper _dbHelper;
-  final List<Expense> _expenses = [];
+  final ExpenseRepository _repository;
+
+  List<Expense> _expenses = [];
   bool _isLoading = false;
   String? _errorMessage;
 
-  // ---------- Read-only state for B and C ----------
+  List<Expense> get expenses => List.unmodifiable(_expenses);
 
   bool get isLoading => _isLoading;
+
   String? get errorMessage => _errorMessage;
 
-  /// All expenses, newest first.
-  List<Expense> get expenses {
-    final sorted = [..._expenses];
-    sorted.sort((a, b) => b.date.compareTo(a.date));
-    return List.unmodifiable(sorted);
-  }
+  double get totalSpent => _expenses.fold(0.0, (sum, expense) => sum + expense.amount);
 
-  bool get isEmpty => _expenses.isEmpty;
-
-  /// Total of all expenses.
-  double get totalSpent => _expenses.fold(0.0, (sum, e) => sum + e.amount);
-
-  /// Total per category. Every category is present, even if 0.
-  Map<String, double> get totalsByCategory {
-    final totals = {for (final c in Expense.categories) c: 0.0};
-    for (final e in _expenses) {
-      totals[e.category] = (totals[e.category] ?? 0) + e.amount;
+  Map<String, double> get categoryTotals {
+    final totals = <String, double>{};
+    for (final expense in _expenses) {
+      totals.update(
+        expense.category,
+        (value) => value + expense.amount,
+        ifAbsent: () => expense.amount,
+      );
     }
 
     return totals;
   }
 
-  Map<String, double> get categoryTotals => totalsByCategory;
-
-  Future<void> loadExpensesIfRequested(bool shouldLoad) async {
-    if (shouldLoad) await loadExpenses();
-  }
-
-  Expense? getById(int id) {
-    for (final e in _expenses) {
-      if (e.id == id) return e;
-    }
-    return null;
-  }
-
-  // ---------- Actions for B ----------
-
-  /// Call once at app start (main.dart).
   Future<void> loadExpenses() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
+
     try {
-      final expenses = await _dbHelper.getAllExpenses();
-      _expenses
-        ..clear()
-        ..addAll(expenses);
+      _expenses = await _repository.getExpenses();
     } catch (error) {
       _errorMessage = 'Unable to load expenses: $error';
     } finally {
@@ -73,43 +51,31 @@ class ExpenseProvider extends ChangeNotifier {
   }
 
   Future<void> addExpense(Expense expense) async {
-    try {
-      final id = await _dbHelper.insert(expense);
-      _expenses.add(expense.copyWith(id: id));
-      _errorMessage = null;
-      notifyListeners();
-    } catch (error) {
-      _errorMessage = 'Unable to add expense: $error';
-      notifyListeners();
-      rethrow;
-    }
+    await _repository.insertExpense(expense);
+    await loadExpenses();
+    _throwIfLoadFailed();
   }
 
   Future<void> updateExpense(Expense expense) async {
-    try {
-      await _dbHelper.update(expense);
-      final index = _expenses.indexWhere((e) => e.id == expense.id);
-      if (index == -1) return;
-      _expenses[index] = expense;
-      _errorMessage = null;
-      notifyListeners();
-    } catch (error) {
-      _errorMessage = 'Unable to update expense: $error';
-      notifyListeners();
-      rethrow;
+    if (expense.id == null) {
+      return;
     }
+
+    await _repository.updateExpense(expense);
+    await loadExpenses();
+    _throwIfLoadFailed();
   }
 
   Future<void> deleteExpense(int id) async {
-    try {
-      await _dbHelper.delete(id);
-      _expenses.removeWhere((e) => e.id == id);
-      _errorMessage = null;
-      notifyListeners();
-    } catch (error) {
-      _errorMessage = 'Unable to delete expense: $error';
-      notifyListeners();
-      rethrow;
+    await _repository.deleteExpense(id);
+    await loadExpenses();
+    _throwIfLoadFailed();
+  }
+
+  void _throwIfLoadFailed() {
+    final error = _errorMessage;
+    if (error != null) {
+      throw Exception(error);
     }
   }
 }
