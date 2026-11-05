@@ -16,7 +16,10 @@ Expense Tracker is a mobile app built with Flutter for people who want a simple 
 
 ## Screenshots
 Add at least three images from the phone in a `screenshots/` folder: list (`screenshots/list.png`), add form with an error (`screenshots/add_error.png`), summary (`screenshots/summary.png`).
-<img width="737" height="1600" alt="WhatsApp Image 2026-11-05 at 9 00 07 PM (1)" src="https://github.com/user-attachments/assets/fe3e4642-79b3-486a-aff7-fef75eab4c45" /><img width="737" height="1600" alt="WhatsApp Image 2026-11-05 at 9 00 07 PM" src="https://github.com/user-attachments/assets/01ac68a9-cba5-4661-a56c-967a484e5c28" />
+<img width="737" height="1600" alt="WhatsApp Image 2026-11-05 at 9 00 07 PM (1)" src="https://github.com/user-attachments/assets/fe3e4642-79b3-486a-aff7-fef75eab4c45" /><img width="737" height="1600" alt="WhatsApp Image 2026-11-05 at 9 00 07 PM" src="https://github.com/user-attachments/assets/01ac68a9-cba5-4661-a56c-967a484e5c28" /><img width="1080" height="2344" alt="WhatsApp Image 2026-11-05 at 9 00 08 PM (1)" src="https://github.com/user-attachments/assets/1f1b8dba-6dec-45c5-a065-f0501fc1f6c6" /><img width="737" height="1600" alt="WhatsApp Image 2026-11-05 at 9 00 08 PM (2)" src="https://github.com/user-attachments/assets/b1df57e1-6ad6-4af4-9a04-16b1f577bdc5" /><img width="737" height="1600" alt="WhatsApp Image 2026-11-05 at 9 00 08 PM" src="https://github.com/user-attachments/assets/acdda0d7-2015-4d5d-b0fd-afc8e2c7c127" />
+
+
+
 
 
 ## Technology stack
