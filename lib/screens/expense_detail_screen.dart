@@ -28,7 +28,10 @@ class ExpenseDetailScreen extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => ExpenseFormScreen(expense: currentExpense),
+                  builder: (_) => Scaffold(
+                    appBar: AppBar(title: const Text('Edit Expense')),
+                    body: ExpenseFormScreen(expense: currentExpense),
+                  ),
                 ),
               );
             },
@@ -46,7 +49,9 @@ class ExpenseDetailScreen extends StatelessWidget {
                 } on Exception catch (error) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Unable to delete expense: $error')),
+                      SnackBar(
+                        content: Text('Unable to delete expense: $error'),
+                      ),
                     );
                   }
                 }
@@ -62,10 +67,7 @@ class ExpenseDetailScreen extends StatelessWidget {
           children: [
             Text(
               currentExpense.title,
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             _InfoRow(
@@ -80,10 +82,7 @@ class ExpenseDetailScreen extends StatelessWidget {
             const SizedBox(height: 16),
             const Text(
               'Notes',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(

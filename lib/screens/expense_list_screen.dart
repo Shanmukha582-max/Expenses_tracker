@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../models/expense.dart';
 import '../providers/expense_provider.dart';
 import 'expense_detail_screen.dart';
 
@@ -14,9 +13,7 @@ class ExpenseListScreen extends StatelessWidget {
     final provider = context.watch<ExpenseProvider>();
 
     if (provider.isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (provider.errorMessage != null) {
@@ -26,10 +23,7 @@ class ExpenseListScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                provider.errorMessage!,
-                textAlign: TextAlign.center,
-              ),
+              Text(provider.errorMessage!, textAlign: TextAlign.center),
               const SizedBox(height: 12),
               OutlinedButton(
                 onPressed: provider.loadExpenses,
@@ -50,7 +44,7 @@ class ExpenseListScreen extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: provider.expenses.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (_, index) {
         final expense = provider.expenses[index];
         return ListTile(
