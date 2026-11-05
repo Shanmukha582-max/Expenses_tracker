@@ -11,5 +11,10 @@ void main() {
     expect(find.text('Add'), findsOneWidget);
     expect(find.text('Summary'), findsOneWidget);
     expect(find.text('Budget'), findsOneWidget);
+    expect(find.byTooltip('Switch to dark mode'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Switch to dark mode'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Switch to light mode'), findsOneWidget);
   });
 }
