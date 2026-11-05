@@ -26,8 +26,9 @@ class DatabaseHelper implements ExpenseRepository {
 
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDatabase,
+      onUpgrade: _upgradeDatabase,
     );
   }
 
@@ -44,6 +45,52 @@ class DatabaseHelper implements ExpenseRepository {
     ''');
   }
 
+  Future<void> _upgradeDatabase(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    if (oldVersion < 2) {
+      await _migrateToCurrentSchema(db);
+    }
+  }
+
+  Future<void> _migrateToCurrentSchema(Database db) async {
+    final columns = await db.rawQuery('PRAGMA table_info(expenses)');
+    final names = columns.map((column) => column['name'] as String).toSet();
+    if (names.contains('title') && names.contains('notes')) return;
+
+    final legacyRows = await db.query('expenses');
+    await db.transaction((transaction) async {
+      await transaction.execute(
+        'ALTER TABLE expenses RENAME TO expenses_legacy',
+      );
+      await transaction.execute('''
+        CREATE TABLE expenses(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          amount REAL NOT NULL,
+          category TEXT NOT NULL,
+          date TEXT NOT NULL,
+          notes TEXT
+        )
+      ''');
+
+      for (final row in legacyRows) {
+        await transaction.insert('expenses', {
+          'id': row['id'],
+          'title': row['title'] ?? row['category'] ?? 'Expense',
+          'amount': row['amount'],
+          'category': row['category'] ?? 'Other',
+          'date': row['date'],
+          'notes': row['notes'] ?? row['note'] ?? '',
+        });
+      }
+
+      await transaction.execute('DROP TABLE expenses_legacy');
+    });
+  }
+
   @override
   Future<int> insertExpense(Expense expense) async {
     final db = await database;
@@ -53,10 +100,7 @@ class DatabaseHelper implements ExpenseRepository {
   @override
   Future<List<Expense>> getExpenses() async {
     final db = await database;
-    final maps = await db.query(
-      'expenses',
-      orderBy: 'date DESC',
-    );
+    final maps = await db.query('expenses', orderBy: 'date DESC');
 
     return maps.map(Expense.fromMap).toList();
   }
@@ -75,11 +119,7 @@ class DatabaseHelper implements ExpenseRepository {
   @override
   Future<int> deleteExpense(int id) async {
     final db = await database;
-    return db.delete(
-      'expenses',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return db.delete('expenses', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<Map<String, double>> getCategoryTotals() async {
