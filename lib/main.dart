@@ -62,6 +62,11 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
       body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
+        backgroundColor: Colors.white,
+        selectedItemColor: Colors.black87,
+        unselectedItemColor: Colors.black54,
+        selectedIconTheme: const IconThemeData(color: Colors.black87),
+        unselectedIconTheme: const IconThemeData(color: Colors.black54),
         onTap: (index) {
           setState(() {
             _currentIndex = index;
