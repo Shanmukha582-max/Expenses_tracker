@@ -1,21 +1,17 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
+import 'package:expenses_tracker/main.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:expenses_tracker/main.dart';
-
 void main() {
-  testWidgets('displays the expense tracker home page', (WidgetTester tester) async {
+  testWidgets('displays the expense tracker navigation', (tester) async {
     await tester.pumpWidget(const ExpenseTrackerApp(loadData: false));
 
     expect(find.text('Expense Tracker'), findsOneWidget);
-    expect(find.text('Welcome back!'), findsOneWidget);
-    expect(find.text('Recent Transactions'), findsOneWidget);
-    expect(find.text('No expenses yet. Add one to begin.'), findsOneWidget);
+    expect(find.text('Expenses'), findsOneWidget);
+    expect(find.text('Add'), findsOneWidget);
+    expect(find.text('Summary'), findsOneWidget);
+    expect(
+      find.text('No expenses yet. Add your first expense.'),
+      findsOneWidget,
+    );
   });
 }

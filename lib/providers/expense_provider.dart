@@ -4,15 +4,18 @@ import '../database/db_helper.dart';
 import '../models/expense.dart';
 
 class ExpenseProvider extends ChangeNotifier {
-  ExpenseProvider({DbHelper? dbHelper}) : _dbHelper = dbHelper ?? DbHelper.instance;
+  ExpenseProvider({DbHelper? dbHelper})
+    : _dbHelper = dbHelper ?? DbHelper.instance;
 
   final DbHelper _dbHelper;
   final List<Expense> _expenses = [];
   bool _isLoading = false;
+  String? _errorMessage;
 
   // ---------- Read-only state for B and C ----------
 
   bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
 
   /// All expenses, newest first.
   List<Expense> get expenses {
@@ -24,8 +27,7 @@ class ExpenseProvider extends ChangeNotifier {
   bool get isEmpty => _expenses.isEmpty;
 
   /// Total of all expenses.
-  double get totalSpent =>
-      _expenses.fold(0.0, (sum, e) => sum + e.amount);
+  double get totalSpent => _expenses.fold(0.0, (sum, e) => sum + e.amount);
 
   /// Total per category. Every category is present, even if 0.
   Map<String, double> get totalsByCategory {
@@ -33,7 +35,14 @@ class ExpenseProvider extends ChangeNotifier {
     for (final e in _expenses) {
       totals[e.category] = (totals[e.category] ?? 0) + e.amount;
     }
+
     return totals;
+  }
+
+  Map<String, double> get categoryTotals => totalsByCategory;
+
+  Future<void> loadExpensesIfRequested(bool shouldLoad) async {
+    if (shouldLoad) await loadExpenses();
   }
 
   Expense? getById(int id) {
@@ -48,12 +57,15 @@ class ExpenseProvider extends ChangeNotifier {
   /// Call once at app start (main.dart).
   Future<void> loadExpenses() async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
     try {
       final expenses = await _dbHelper.getAllExpenses();
       _expenses
         ..clear()
         ..addAll(expenses);
+    } catch (error) {
+      _errorMessage = 'Unable to load expenses: $error';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -61,22 +73,43 @@ class ExpenseProvider extends ChangeNotifier {
   }
 
   Future<void> addExpense(Expense expense) async {
-    final id = await _dbHelper.insert(expense);
-    _expenses.add(expense.copyWith(id: id));
-    notifyListeners();
+    try {
+      final id = await _dbHelper.insert(expense);
+      _expenses.add(expense.copyWith(id: id));
+      _errorMessage = null;
+      notifyListeners();
+    } catch (error) {
+      _errorMessage = 'Unable to add expense: $error';
+      notifyListeners();
+      rethrow;
+    }
   }
 
   Future<void> updateExpense(Expense expense) async {
-    await _dbHelper.update(expense);
-    final index = _expenses.indexWhere((e) => e.id == expense.id);
-    if (index == -1) return;
-    _expenses[index] = expense;
-    notifyListeners();
+    try {
+      await _dbHelper.update(expense);
+      final index = _expenses.indexWhere((e) => e.id == expense.id);
+      if (index == -1) return;
+      _expenses[index] = expense;
+      _errorMessage = null;
+      notifyListeners();
+    } catch (error) {
+      _errorMessage = 'Unable to update expense: $error';
+      notifyListeners();
+      rethrow;
+    }
   }
 
   Future<void> deleteExpense(int id) async {
-    await _dbHelper.delete(id);
-    _expenses.removeWhere((e) => e.id == id);
-    notifyListeners();
+    try {
+      await _dbHelper.delete(id);
+      _expenses.removeWhere((e) => e.id == id);
+      _errorMessage = null;
+      notifyListeners();
+    } catch (error) {
+      _errorMessage = 'Unable to delete expense: $error';
+      notifyListeners();
+      rethrow;
+    }
   }
 }
