@@ -7,6 +7,7 @@ import 'screens/expense_form_screen.dart';
 import 'screens/expense_list_screen.dart';
 import 'screens/expense_summary_screen.dart';
 import 'screens/budget_progress_screen.dart';
+import 'screens/settings_screen.dart';
 
 void main() {
   runApp(const ExpenseTrackerApp());
@@ -70,15 +71,19 @@ class ExpenseHomePage extends StatefulWidget {
 class _ExpenseHomePageState extends State<ExpenseHomePage> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = const [
-    ExpenseListScreen(),
-    ExpenseFormScreen(),
-    ExpenseSummaryScreen(),
-    BudgetProgressScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final pages = <Widget>[
+      const ExpenseListScreen(),
+      const ExpenseFormScreen(),
+      const ExpenseSummaryScreen(),
+      const BudgetProgressScreen(),
+      SettingsScreen(
+        isDarkMode: widget.isDarkMode,
+        onToggleTheme: widget.onToggleTheme,
+      ),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Expense Tracker'),
@@ -94,7 +99,7 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
           ),
         ],
       ),
-      body: IndexedStack(index: _currentIndex, children: _pages),
+      body: IndexedStack(index: _currentIndex, children: pages),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         backgroundColor: Theme.of(context).colorScheme.surface,
@@ -118,6 +123,11 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.account_balance_wallet),
             label: 'Budget',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings_outlined),
+            activeIcon: Icon(Icons.settings),
+            label: 'Settings',
           ),
         ],
       ),
