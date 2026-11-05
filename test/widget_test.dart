@@ -11,10 +11,11 @@ import 'package:expenses_tracker/main.dart';
 
 void main() {
   testWidgets('displays the expense tracker home page', (WidgetTester tester) async {
-    await tester.pumpWidget(const ExpenseTrackerApp());
+    await tester.pumpWidget(const ExpenseTrackerApp(loadData: false));
 
     expect(find.text('Expense Tracker'), findsOneWidget);
     expect(find.text('Welcome back!'), findsOneWidget);
     expect(find.text('Recent Transactions'), findsOneWidget);
+    expect(find.text('No expenses yet. Add one to begin.'), findsOneWidget);
   });
 }

@@ -1,9 +1,13 @@
 import 'package:flutter/foundation.dart';
+
+import '../database/db_helper.dart';
 import '../models/expense.dart';
 
 class ExpenseProvider extends ChangeNotifier {
+  ExpenseProvider({DbHelper? dbHelper}) : _dbHelper = dbHelper ?? DbHelper.instance;
+
+  final DbHelper _dbHelper;
   final List<Expense> _expenses = [];
-  int _nextId = 1; // temporary, replaced by the database id later
   bool _isLoading = false;
 
   // ---------- Read-only state for B and C ----------
@@ -45,22 +49,25 @@ class ExpenseProvider extends ChangeNotifier {
   Future<void> loadExpenses() async {
     _isLoading = true;
     notifyListeners();
-    // TODO (hour 1-3): _expenses
-    //   ..clear()
-    //   ..addAll(await DbHelper.instance.getAllExpenses());
-    _isLoading = false;
-    notifyListeners();
+    try {
+      final expenses = await _dbHelper.getAllExpenses();
+      _expenses
+        ..clear()
+        ..addAll(expenses);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> addExpense(Expense expense) async {
-    // TODO (hour 1-3): final id = await DbHelper.instance.insert(expense);
-    final id = _nextId++;
+    final id = await _dbHelper.insert(expense);
     _expenses.add(expense.copyWith(id: id));
     notifyListeners();
   }
 
   Future<void> updateExpense(Expense expense) async {
-    // TODO (hour 1-3): await DbHelper.instance.update(expense);
+    await _dbHelper.update(expense);
     final index = _expenses.indexWhere((e) => e.id == expense.id);
     if (index == -1) return;
     _expenses[index] = expense;
@@ -68,21 +75,8 @@ class ExpenseProvider extends ChangeNotifier {
   }
 
   Future<void> deleteExpense(int id) async {
-    // TODO (hour 1-3): await DbHelper.instance.delete(id);
+    await _dbHelper.delete(id);
     _expenses.removeWhere((e) => e.id == id);
     notifyListeners();
   }
-
-  // ---------- Temporary: dummy data for testing UI ----------
-
-  void loadDummyData() {
-    if (_expenses.isNotEmpty) return;
-    final now = DateTime.now();
-    _expenses.addAll([
-      Expense(id: _nextId++, amount: 250, category: 'Food', date: now, note: 'Lunch'),
-      Expense(id: _nextId++, amount: 80, category: 'Transport', date: now.subtract(const Duration(days: 1)), note: 'Auto'),
-      Expense(id: _nextId++, amount: 1200, category: 'Bills', date: now.subtract(const Duration(days: 2)), note: 'Electricity'),
-    ]);
-    notifyListeners();
-  }
-} 
+}
