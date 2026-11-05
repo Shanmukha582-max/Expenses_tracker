@@ -15,53 +15,72 @@ class ExpenseFormScreen extends StatefulWidget {
 
 class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _amountController;
-  late final TextEditingController _noteController;
-  late String _category;
-  late DateTime _date;
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
+
+  String _selectedCategory = 'Food';
+  DateTime _selectedDate = DateTime.now();
 
   @override
   void initState() {
     super.initState();
-    final expense = widget.expense;
-    _amountController = TextEditingController(
-      text: expense?.amount.toString() ?? '',
-    );
-    _noteController = TextEditingController(text: expense?.note ?? '');
-    _category = expense?.category ?? Expense.categories.first;
-    _date = expense?.date ?? DateTime.now();
+    if (widget.expense != null) {
+      final expense = widget.expense!;
+      _titleController.text = expense.title;
+      _amountController.text = expense.amount.toString();
+      _notesController.text = expense.notes;
+      _selectedCategory = expense.category;
+      _selectedDate = expense.date;
+    }
   }
 
   @override
   void dispose() {
+    _titleController.dispose();
     _amountController.dispose();
-    _noteController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final provider = context.read<ExpenseProvider>();
     final expense = Expense(
       id: widget.expense?.id,
+      title: _titleController.text.trim(),
       amount: double.parse(_amountController.text.trim()),
-      category: _category,
-      date: _date,
-      note: _noteController.text.trim(),
+      category: _selectedCategory,
+      date: _selectedDate,
+      notes: _notesController.text.trim(),
     );
+
     try {
-      final provider = context.read<ExpenseProvider>();
       if (widget.expense == null) {
         await provider.addExpense(expense);
-        _formKey.currentState!.reset();
-        _amountController.clear();
-        _noteController.clear();
-        setState(() {
-          _category = Expense.categories.first;
-          _date = DateTime.now();
-        });
-      } else {
-        await provider.updateExpense(expense);
-        if (mounted) Navigator.of(context).pop();
+
+        if (mounted) {
+          _formKey.currentState!.reset();
+          _titleController.clear();
+          _amountController.clear();
+          _notesController.clear();
+          setState(() {
+            _selectedCategory = 'Food';
+            _selectedDate = DateTime.now();
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Expense saved successfully')),
+          );
+        }
+        return;
+      }
+
+      await provider.updateExpense(expense);
+      if (mounted) {
+        Navigator.of(context).pop();
       }
     } on Exception catch (error) {
       if (mounted) {
@@ -73,18 +92,25 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
   }
 
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(
+    final pickedDate = await showDatePicker(
       context: context,
-      initialDate: _date,
+      initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 3650)),
     );
-    if (picked != null) setState(() => _date = picked);
+
+    if (pickedDate != null) {
+      setState(() {
+        _selectedDate = pickedDate;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final editing = widget.expense != null;
+    final buttonText = widget.expense == null ? 'Save Expense' : 'Update Expense';
+    final pageTitle = widget.expense == null ? 'Add Expense' : 'Edit Expense';
+
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Form(
@@ -92,41 +118,69 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
         child: ListView(
           children: [
             Text(
-              editing ? 'Edit Expense' : 'Add Expense',
-              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+              pageTitle,
+              style: const TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 24),
             TextFormField(
+              controller: _titleController,
+              decoration: const InputDecoration(
+                labelText: 'Title',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter a title';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
               controller: _amountController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
                 labelText: 'Amount',
                 prefixText: '₹ ',
                 border: OutlineInputBorder(),
               ),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
               validator: (value) {
-                final amount = double.tryParse(value?.trim() ?? '');
-                return amount == null || amount <= 0
-                    ? 'Enter a positive amount'
-                    : null;
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter an amount';
+                }
+
+                final parsed = double.tryParse(value.trim());
+                if (parsed == null || parsed <= 0) {
+                  return 'Amount must be greater than 0';
+                }
+
+                return null;
               },
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              initialValue: _category,
+              initialValue: _selectedCategory,
               decoration: const InputDecoration(
                 labelText: 'Category',
                 border: OutlineInputBorder(),
               ),
-              items: Expense.categories
-                  .map(
-                    (item) => DropdownMenuItem(value: item, child: Text(item)),
-                  )
-                  .toList(),
+              items: const [
+                DropdownMenuItem(value: 'Food', child: Text('Food')),
+                DropdownMenuItem(value: 'Shopping', child: Text('Shopping')),
+                DropdownMenuItem(value: 'Travel', child: Text('Travel')),
+                DropdownMenuItem(value: 'Rent', child: Text('Rent')),
+                DropdownMenuItem(value: 'Health', child: Text('Health')),
+                DropdownMenuItem(value: 'Utilities', child: Text('Utilities')),
+              ],
               onChanged: (value) {
-                if (value != null) setState(() => _category = value);
+                if (value != null) {
+                  setState(() {
+                    _selectedCategory = value;
+                  });
+                }
               },
             ),
             const SizedBox(height: 16),
@@ -137,23 +191,31 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                   labelText: 'Date',
                   border: OutlineInputBorder(),
                 ),
-                child: Text('${_date.day}/${_date.month}/${_date.year}'),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                    ),
+                    const Icon(Icons.calendar_today),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 16),
             TextFormField(
-              controller: _noteController,
-              maxLines: 3,
+              controller: _notesController,
+              maxLines: 4,
               decoration: const InputDecoration(
-                labelText: 'Note',
+                labelText: 'Notes',
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: _save,
+              onPressed: _submit,
               icon: const Icon(Icons.save),
-              label: Text(editing ? 'Update Expense' : 'Save Expense'),
+              label: Text(buttonText),
             ),
           ],
         ),
