@@ -127,7 +127,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _backupAndRestore() async {
-    await showModalBottomSheet<void>(
+    final action = await showModalBottomSheet<String>(
       context: context,
       builder: (context) => SafeArea(
         child: Wrap(
@@ -135,23 +135,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ListTile(
               leading: const Icon(Icons.upload),
               title: const Text('Back up now'),
-              onTap: () {
-                Navigator.pop(context);
-                _backup();
-              },
+              onTap: () => Navigator.pop(context, 'backup'),
             ),
             ListTile(
               leading: const Icon(Icons.download),
               title: const Text('Restore backup'),
-              onTap: () {
-                Navigator.pop(context);
-                _restore();
-              },
+              onTap: () => Navigator.pop(context, 'restore'),
             ),
           ],
         ),
       ),
     );
+    if (!mounted) return;
+    if (action == 'backup') {
+      await _backup();
+    } else if (action == 'restore') {
+      await _restore();
+    }
   }
 
   @override
@@ -197,7 +197,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               );
-              if (selected != null) setState(() => _currency = selected);
+              if (selected != null && mounted) {
+                setState(() => _currency = selected);
+              }
             },
           ),
         ),
