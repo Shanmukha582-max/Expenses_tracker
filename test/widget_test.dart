@@ -10,5 +10,6 @@ void main() {
     expect(find.text('Expenses'), findsOneWidget);
     expect(find.text('Add'), findsOneWidget);
     expect(find.text('Summary'), findsOneWidget);
+    expect(find.text('Budget'), findsOneWidget);
   });
 }

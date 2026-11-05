@@ -6,6 +6,7 @@ import 'providers/expense_provider.dart';
 import 'screens/expense_form_screen.dart';
 import 'screens/expense_list_screen.dart';
 import 'screens/expense_summary_screen.dart';
+import 'screens/budget_progress_screen.dart';
 
 void main() {
   runApp(const ExpenseTrackerApp());
@@ -24,9 +25,7 @@ class ExpenseTrackerApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'Expense Tracker',
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.deepPurple,
-          ),
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),
         home: const ExpenseHomePage(),
@@ -49,6 +48,7 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
     ExpenseListScreen(),
     ExpenseFormScreen(),
     ExpenseSummaryScreen(),
+    BudgetProgressScreen(),
   ];
 
   @override
@@ -59,10 +59,7 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
       ),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -71,17 +68,15 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
           });
         },
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list),
-            label: 'Expenses',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle),
-            label: 'Add',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Expenses'),
+          BottomNavigationBarItem(icon: Icon(Icons.add_circle), label: 'Add'),
           BottomNavigationBarItem(
             icon: Icon(Icons.bar_chart),
             label: 'Summary',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance_wallet),
+            label: 'Budget',
           ),
         ],
       ),
